@@ -36,5 +36,7 @@ export interface ParsedChampion {
     rootSpell: string | null;
     childSpells: string[] | null;
     spells: ParsedSpell[];
+    /** When true, this ability contains a combinatorial set of spells (e.g., 3x3 variants). Consumer may choose how to aggregate. */
+    isCombinatorial?: boolean;
   }[];
 }

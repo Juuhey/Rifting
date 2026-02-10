@@ -1,6 +1,6 @@
 import { safeGet } from '../helpers/safe-get.helper';
 import { ParsedChampion } from '../interface/champion.interface';
-import { parseSpells } from './spell.parser';
+import { parseAbility } from './spell.parser';
 
 export function parseChampion(
   json: Record<string, any>,
@@ -50,29 +50,11 @@ export function parseChampion(
     purchaseIdentities: safeGet(root.purchaseIdentities),
   };
 
-  const parsedSpells = parseSpells(json, root);
-
-  const abilities = [] as {
-    path: string;
-    rootSpell: string | null;
-    childSpells: string[] | null;
-    spells: any[];
-  }[];
+  const abilities: ParsedChampion['abilities'] = [];
 
   for (const abilityPath of root.mAbilities ?? []) {
-    const abilityObject = json[abilityPath] ?? {};
-    const rootSpellId = safeGet(abilityObject.mRootSpell);
-
-    const matchingSpells = parsedSpells.filter(
-      (s) => s.rootSpell === rootSpellId || s.abilityPath === abilityPath,
-    );
-
-    abilities.push({
-      path: abilityPath,
-      rootSpell: rootSpellId,
-      childSpells: safeGet(abilityObject.mChildSpells) ?? [],
-      spells: matchingSpells,
-    });
+    const ability = parseAbility(json, abilityPath);
+    if (ability) abilities.push(ability as any);
   }
 
   return {
