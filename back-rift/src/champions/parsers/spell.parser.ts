@@ -29,6 +29,7 @@ function parseSpellFromPath(
   spellPath: string,
   abilityPath: string,
   variantIndex?: number | null,
+  slotOverride?: ParsedSpell['slot'],
 ): ParsedSpell | null {
   const spellObject = json[spellPath];
   const spellData = spellObject?.mSpell;
@@ -40,7 +41,7 @@ function parseSpellFromPath(
   const isWrapper = isWrapperName(scriptName) || isWrapperName(spellPath) || isWrapperName(spellData?.mName);
 
   return {
-    slot: inferSlot(abilityPath),
+    slot: slotOverride ?? inferSlot(abilityPath),
 
     nameKey: safeGet(
       spellData.mClientData?.mTooltipData?.mLocKeys?.keyName,
@@ -69,6 +70,7 @@ function parseSpellFromPath(
 export function parseAbility(
   json: Record<string, any>,
   abilityPath: string,
+  slotOverride?: ParsedSpell['slot'],
 ) {
   const abilityObject = json[abilityPath];
   if (!abilityObject) return null;
@@ -78,17 +80,26 @@ export function parseAbility(
 
   const spells: ParsedSpell[] = [];
 
+  const seen = new Set<string>();
+
   // Root spell (treat as variantIndex 0)
   if (rootSpell) {
-    const parsed = parseSpellFromPath(json, rootSpell, abilityPath, 0);
-    if (parsed) spells.push(parsed);
+    const parsed = parseSpellFromPath(json, rootSpell, abilityPath, 0, slotOverride);
+    if (parsed) {
+      spells.push(parsed);
+      seen.add(String(rootSpell));
+    }
   }
 
   // Child spells (Q2, Q3, Hwei variants, etc.) — keep their variant index
   for (let i = 0; i < childSpells.length; i++) {
     const childPath = childSpells[i];
-    const parsed = parseSpellFromPath(json, childPath, abilityPath, i + 1);
-    if (parsed) spells.push(parsed);
+    if (seen.has(String(childPath))) continue; // avoid duplicates (root included in children sometimes)
+    const parsed = parseSpellFromPath(json, childPath, abilityPath, i + 1, slotOverride);
+    if (parsed) {
+      spells.push(parsed);
+      seen.add(String(childPath));
+    }
   }
 
   if (spells.length === 0) return null;

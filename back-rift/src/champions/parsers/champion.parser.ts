@@ -52,8 +52,21 @@ export function parseChampion(
 
   const abilities: ParsedChampion['abilities'] = [];
 
-  for (const abilityPath of root.mAbilities ?? []) {
-    const ability = parseAbility(json, abilityPath);
+  const abilityPaths = root.mAbilities ?? [];
+  const canonicalOrder: ('R' | 'Q' | 'W' | 'E' | 'P')[] = ['R', 'Q', 'W', 'E', 'P'];
+
+  for (let i = 0; i < abilityPaths.length; i++) {
+    const abilityPath = abilityPaths[i];
+
+    const isExplicit = /Passive|QAbility|WAbility|EAbility|RAbility/.test(
+      abilityPath,
+    );
+
+    const slotOverride: any = isExplicit
+      ? undefined
+      : canonicalOrder[i] ?? undefined;
+
+    const ability = parseAbility(json, abilityPath, slotOverride);
     if (ability) abilities.push(ability as any);
   }
 
